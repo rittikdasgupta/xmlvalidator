@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML Validator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                XML Validator
+            </h1>
+            <p class="subtitle">Upload a ZIP file containing XML files for validation and extraction</p>
+        </header>
+
+        <main class="main-content">
+            <div class="upload-section">
+                <form id="uploadForm" class="upload-form">
+                    <div class="file-upload-area" id="dropZone">
+                        <input type="file" id="fileInput" name="file" accept=".zip" hidden>
+                        <p class="size-limit-hint">Maximum file size: 50 MB</p>
+                        <div class="upload-content">
+                            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p class="upload-text">Drag and drop your ZIP file here</p>
+                            <p class="upload-subtext">or</p>
+                            <button type="button" class="btn btn-primary" id="browseBtn">
+                                Browse Files
+                            </button>
+                            <p class="file-info" id="fileInfo"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="targetXml" class="form-label">
+                            Target XML File (Optional)
+                            <span class="label-hint">Leave empty to list all XML files</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="targetXml" 
+                            name="target_xml" 
+                            class="form-input" 
+                            placeholder="e.g., CTL_80.005.09390_097.xml"
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-submit" id="submitBtn">
+                        <span class="btn-text">Validate & Extract</span>
+                        <span class="btn-loader" id="loader" style="display: none;"></span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="result-card">
+                    <div class="result-header">
+                        <h2 class="result-title">Validation Results</h2>
+                        <button class="btn-close" id="closeResults" aria-label="Close results">×</button>
+                    </div>
+                    
+                    <div class="result-content">
+                        <div class="status-message" id="statusMessage"></div>
+                        
+                        <div class="result-section" id="extractedFilesSection">
+                            <h3 class="section-title">Extracted Files</h3>
+                            <div class="file-list" id="extractedFilesList"></div>
+                        </div>
+
+                        <div class="result-section" id="xmlFilesSection">
+                            <h3 class="section-title">XML Files Found</h3>
+                            <div class="file-list" id="xmlFilesList"></div>
+                        </div>
+
+                        <div class="result-section" id="xmlContentSection" style="display: none;">
+                            <h3 class="section-title">XML Content</h3>
+                            <div class="xml-viewer" id="xmlContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>XML Validator &copy; 2024</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+
