@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showResults(data) {
         const statusMessage = document.getElementById('statusMessage');
-        const extractedFilesList = document.getElementById('extractedFilesList');
+        // const extractedFilesList = document.getElementById('extractedFilesList');
         const xmlFilesList = document.getElementById('xmlFilesList');
         const xmlContentSection = document.getElementById('xmlContentSection');
         const xmlContent = document.getElementById('xmlContent');
@@ -137,20 +137,26 @@ document.addEventListener('DOMContentLoaded', function() {
         statusMessage.textContent = '✓ ' + (data.message || 'File processed successfully');
 
         // Extracted files
-        if (data.extracted_files && data.extracted_files.length > 0) {
-            extractedFilesList.innerHTML = data.extracted_files.map(file => 
-                `<div class="file-item">${escapeHtml(file)}</div>`
-            ).join('');
-            document.getElementById('extractedFilesSection').style.display = 'block';
-        } else {
-            document.getElementById('extractedFilesSection').style.display = 'none';
-        }
+        // if (data.extracted_files && data.extracted_files.length > 0) {
+        //     extractedFilesList.innerHTML = data.extracted_files.map(file => 
+        //         `<div class="file-item">${escapeHtml(file)}</div>`
+        //     ).join('');
+        //     document.getElementById('extractedFilesSection').style.display = 'block';
+        // } else {
+        //     document.getElementById('extractedFilesSection').style.display = 'none';
+        // }
 
-        // XML files
+        // XML files with timestamps
         if (data.xml_files && data.xml_files.length > 0) {
-            xmlFilesList.innerHTML = data.xml_files.map(file => 
-                `<div class="file-item">${escapeHtml(file)}</div>`
-            ).join('');
+            xmlFilesList.innerHTML = data.xml_files.map(file => {
+                const timestamp = data.xml_timestamps && data.xml_timestamps[file] 
+                    ? `<span class="file-timestamp">${escapeHtml(data.xml_timestamps[file])}</span>` 
+                    : '<span class="file-timestamp">Unknown</span>';
+                return `<div class="file-item">
+                    <span class="file-name">${escapeHtml(file)}</span>
+                    ${timestamp}
+                </div>`;
+            }).join('');
             document.getElementById('xmlFilesSection').style.display = 'block';
         } else {
             document.getElementById('xmlFilesSection').style.display = 'none';
@@ -159,6 +165,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // XML content
         if (data.xml_content) {
             xmlContent.textContent = data.xml_content;
+            
+            // Display XML filename if available
+            const xmlFilenameDisplay = document.getElementById('xmlFilenameDisplay');
+            if (data.xml_filename) {
+                xmlFilenameDisplay.textContent = ` File: ${escapeHtml(data.xml_filename)}`;
+                xmlFilenameDisplay.style.display = 'block';
+            } else {
+                xmlFilenameDisplay.style.display = 'none';
+            }
+            
             xmlContentSection.style.display = 'block';
         } else {
             xmlContentSection.style.display = 'none';

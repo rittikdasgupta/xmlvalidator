@@ -73,13 +73,29 @@ def upload_file():
         validator.cleanup()
         
         # Format result for JSON response
+        # Create a mapping of XML filenames to their timestamps
+        xml_timestamps_dict = {}
+        for xml_path, timestamp in result.get('xml_timestamps', {}).items():
+            xml_filename = os.path.basename(xml_path)
+            xml_timestamps_dict[xml_filename] = timestamp
+        
+        # Get the actual XML filename that was read (for display purposes)
+        actual_xml_filename = result.get('xml_filename')
+        if actual_xml_filename and actual_xml_filename in xml_timestamps_dict:
+            # Use the actual filename from the result
+            pass
+        elif result.get('xml_files') and len(result['xml_files']) > 0:
+            # Fallback to first XML file if no specific filename was set
+            actual_xml_filename = os.path.basename(result['xml_files'][0])
+        
         response = {
             'success': result['success'],
             'message': result['message'],
             'extracted_files': result['extracted_files'],
             'xml_files': [os.path.basename(f) for f in result['xml_files']],
+            'xml_timestamps': xml_timestamps_dict,
             'xml_content': result['xml_content'],
-            'xml_filename': result['xml_filename']
+            'xml_filename': actual_xml_filename
         }
         
         return jsonify(response)

@@ -6,6 +6,7 @@ import zipfile
 import os
 import tempfile
 import shutil
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 
@@ -91,7 +92,73 @@ class XMLValidator:
         
         return xml_files
     
-    def read_xml_file(self, xml_filename: str) -> Tuple[bool, str, Optional[str]]:
+    def get_xml_file_timestamps(self) -> Dict[str, str]:
+        """
+        Get timestamps for XML files from the zip archive.
+        
+        Returns:
+            Dictionary mapping XML file paths to their timestamps (formatted as strings)
+        """
+        timestamps = {}
+        
+        if not os.path.exists(self.zip_path):
+            return timestamps
+        
+        try:
+            with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
+                # Get all XML files found in the extracted directory
+                xml_files = self.find_xml_files()
+                
+                # Create a mapping of relative paths to full paths
+                # We need to match zip entries to extracted XML files
+                for xml_path in xml_files:
+                    # Get relative path from extract folder
+                    rel_path = os.path.relpath(xml_path, self.extract_folder)
+                    
+                    # Try to find matching entry in zip
+                    # Handle both forward and backward slashes
+                    zip_entry = None
+                    for entry_name in zip_ref.namelist():
+                        # Normalize paths for comparison
+                        normalized_entry = entry_name.replace('\\', '/')
+                        normalized_rel = rel_path.replace('\\', '/')
+                        
+                        if normalized_entry == normalized_rel or normalized_entry.endswith('/' + normalized_rel):
+                            zip_entry = entry_name
+                            break
+                        # Also check if the entry name matches the filename
+                        if os.path.basename(normalized_entry) == os.path.basename(normalized_rel):
+                            zip_entry = entry_name
+                            break
+                    
+                    if zip_entry:
+                        try:
+                            zip_info = zip_ref.getinfo(zip_entry)
+                            # zip_info.date_time is a tuple: (year, month, day, hour, minute, second)
+                            dt = datetime(*zip_info.date_time)
+                            timestamps[xml_path] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                        except (KeyError, ValueError, TypeError):
+                            # If we can't get timestamp, use file system timestamp as fallback
+                            try:
+                                file_stat = os.stat(xml_path)
+                                dt = datetime.fromtimestamp(file_stat.st_mtime)
+                                timestamps[xml_path] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                            except OSError:
+                                timestamps[xml_path] = 'Unknown'
+                    else:
+                        # If not found in zip, use file system timestamp
+                        try:
+                            file_stat = os.stat(xml_path)
+                            dt = datetime.fromtimestamp(file_stat.st_mtime)
+                            timestamps[xml_path] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                        except OSError:
+                            timestamps[xml_path] = 'Unknown'
+        except Exception as e:
+            print(f"Warning: Could not extract timestamps: {str(e)}")
+        
+        return timestamps
+    
+    def read_xml_file(self, xml_filename: str) -> Tuple[bool, str, Optional[str], Optional[str]]:
         """
         Read and return the contents of a specific XML file.
         
@@ -99,10 +166,10 @@ class XMLValidator:
             xml_filename: Name of the XML file to read (can be just filename or relative path)
         
         Returns:
-            Tuple of (success, message, content)
+            Tuple of (success, message, content, actual_filename)
         """
         if not self.extract_folder:
-            return False, "No extraction folder. Please extract zip file first.", None
+            return False, "No extraction folder. Please extract zip file first.", None, None
         
         # Try to find the file
         target_path = None
@@ -122,14 +189,15 @@ class XMLValidator:
                     break
         
         if not target_path or not os.path.exists(target_path):
-            return False, f"File '{xml_filename}' not found in extracted folder.", None
+            return False, f"File '{xml_filename}' not found in extracted folder.", None, None
         
         try:
             with open(target_path, 'r', encoding='utf-8') as file:
                 content = file.read()
-            return True, f"Successfully read '{xml_filename}'", content
+            actual_filename = os.path.basename(target_path)
+            return True, f"Successfully read '{xml_filename}'", content, actual_filename
         except Exception as e:
-            return False, f"Error reading file: {str(e)}", None
+            return False, f"Error reading file: {str(e)}", None, None
     
     def cleanup(self):
         """Clean up extracted files if using temp directory."""
@@ -155,6 +223,7 @@ class XMLValidator:
             'message': '',
             'extracted_files': [],
             'xml_files': [],
+            'xml_timestamps': {},
             'xml_content': None,
             'xml_filename': target_xml
         }
@@ -171,16 +240,32 @@ class XMLValidator:
         # Find all XML files
         result['xml_files'] = self.find_xml_files()
         
-        # Read target XML if specified
+        # Get timestamps for XML files
+        result['xml_timestamps'] = self.get_xml_file_timestamps()
+        
+        # Read target XML if specified, otherwise read first XML file
         if target_xml:
-            success, msg, content = self.read_xml_file(target_xml)
+            success, msg, content, actual_filename = self.read_xml_file(target_xml)
             result['xml_content'] = content
+            result['xml_filename'] = actual_filename if actual_filename else target_xml
             if not success:
                 result['message'] += f" | {msg}"
             else:
                 result['success'] = True
         else:
-            result['success'] = True
+            # If no target XML specified, read the first XML file if available
+            if result['xml_files']:
+                first_xml_path = result['xml_files'][0]
+                first_xml_filename = os.path.basename(first_xml_path)
+                success, msg, content, actual_filename = self.read_xml_file(first_xml_filename)
+                result['xml_content'] = content
+                result['xml_filename'] = actual_filename if actual_filename else first_xml_filename
+                if not success:
+                    result['message'] += f" | {msg}"
+                else:
+                    result['success'] = True
+            else:
+                result['success'] = True
         
         return result
 
