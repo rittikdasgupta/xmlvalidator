@@ -98,10 +98,24 @@ def upload_file():
             'xml_filename': actual_xml_filename
         }
         
-        return jsonify(response)
+        try:
+            return jsonify(response)
+        except Exception as json_error:
+            # If JSON serialization fails (e.g., due to encoding issues), return error
+            print(f"Error serializing response to JSON: {str(json_error)}")
+            return jsonify({
+                'success': False, 
+                'error': 'Error formatting response. The file may contain invalid characters.'
+            }), 500
         
     except Exception as e:
-        return jsonify({'success': False, 'error': f'Error processing file: {str(e)}'}), 500
+        # Ensure we always return valid JSON, even for unexpected errors
+        try:
+            error_msg = str(e) if e else 'Unknown error occurred'
+            return jsonify({'success': False, 'error': f'Error processing file: {error_msg}'}), 500
+        except Exception:
+            # Last resort: return a simple JSON error if even this fails
+            return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
         
     finally:
         # Always clean up uploaded file, even if processing fails

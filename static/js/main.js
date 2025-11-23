@@ -108,7 +108,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             });
 
-            const data = await response.json();
+            // Check if response has content
+            const contentType = response.headers.get('content-type');
+            const text = await response.text();
+            
+            // If response is empty, handle it
+            if (!text || text.trim().length === 0) {
+                showError('Server returned an empty response. Please try again.');
+                return;
+            }
+            
+            // Try to parse JSON
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (jsonError) {
+                // If response is not valid JSON, show the raw response or a helpful error
+                console.error('Invalid JSON response:', text);
+                showError('Server returned an invalid response. Please try again or contact support.');
+                return;
+            }
 
             if (response.ok && data.success) {
                 showResults(data);
@@ -116,7 +135,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 showError(data.error || data.message || 'An error occurred while processing the file');
             }
         } catch (error) {
-            showError('Network error: ' + error.message);
+            // Handle network errors, timeouts, etc.
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                showError('Network error: Could not connect to server. Please check your connection and try again.');
+            } else {
+                showError('Network error: ' + error.message);
+            }
         } finally {
             // Reset button state
             submitBtn.disabled = false;
